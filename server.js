@@ -11,31 +11,25 @@ app.use(express.static(path.join(__dirname, 'public')));
 let uniquePlayersToday = new Set();
 let uniquePlayersYesterdayCount = 0;
 
-// Fonction de calcul des stats du boss selon ta formule
+// Fonction de calcul des stats du boss selon ta formule ultime
 function calculerStatsBoss(joueursHier) {
-    let x = joueursHier || 0;
+    let x = Math.max(1, joueursHier || 1); // Minimum 1 joueur pour éviter les puissances sur 0
     
-    // Évite les erreurs de log(0)
-    let logX = x > 0 ? Math.log(x) : 0;
+    // y = 3600 * x^1.1 (PV Max)
+    let y = 3600 * Math.pow(x, 1.1);
     
-    // y = log(x)*1000 + x (ou 1000 si NaN / 0)
-    let y = (logX * 1000) + x;
-    if (isNaN(y) || y <= 0) y = 1000;
-    
-    // z = log(y)*100 + x (ou 0 si NaN)
-    let logY = y > 0 ? Math.log(y) : 0;
-    let z = (logY * 100) + x;
-    if (isNaN(z) || z < 0) z = 0;
+    // z = 0.2 * x (Régénération par seconde)
+    let z = 0.2 * x;
 
     return {
         maxHp: Math.round(y),
         hp: Math.round(y),
-        regenRate: Math.max(10, Math.round(z)) // On met un minimum de 10 PV/s pour garder du challenge
+        regenRate: Math.max(1, Math.round(z))
     };
 }
 
-// État initial du Boss (Jour 1 avec stats de base)
-let statsInitiales = calculerStatsBoss(0);
+// État initial du Boss (Jour 1 avec 1 joueur de référence)
+let statsInitiales = calculerStatsBoss(1);
 let boss = {
     maxHp: statsInitiales.maxHp,
     hp: statsInitiales.hp,
@@ -50,12 +44,12 @@ let cooldownsBtn2 = new Map(); // 1 heure
 let cooldownsBtn3 = new Map(); // 4 heures
 let cooldownsBtn4 = new Map(); // 24 heures
 
-// Tableaux pour les fenêtres temporelles des équations
+// Tableaux pour les fenêtres temporelles des équations de groupe
 let clicksBtn2 = []; 
 let clicksBtn3 = []; 
 let clicksBtn4 = []; 
 
-// Fonction pour enregistrer et identifier l'IP du joueur du jour
+// Fonction pour enregistrer et identifier l'IP du joueur anonymement
 function trackPlayer(req) {
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
     const userHash = crypto.createHash('md5').update(ip).digest('hex').substring(0, 8);
@@ -70,7 +64,7 @@ setInterval(() => {
     }
 }, 1000);
 
-// Route d'état
+// Route d'état du boss
 app.get('/api/boss', (req, res) => {
     trackPlayer(req);
     res.json({ ...boss, playersToday: uniquePlayersToday.size });
@@ -166,11 +160,11 @@ function checkBossDeath() {
         boss.isAlive = false;
         boss.hp = 0;
         
-        // Sauvegarde du nombre de joueurs d'hier pour le calcul du lendemain
-        uniquePlayersYesterdayCount = uniquePlayersToday.size;
-        uniquePlayersToday.clear(); // On reset pour le nouveau jour
+        // Sauvegarde des joueurs d'hier et reset du compteur du jour
+        uniquePlayersYesterdayCount = uniquePlayersToday.size || 1;
+        uniquePlayersToday.clear();
         
-        // Respawn automatique après 30 secondes avec les nouvelles stats basées sur la formule
+        // Respawn automatique après 30 secondes avec la formule adaptative
         setTimeout(() => {
             const nouvellesStats = calculerStatsBoss(uniquePlayersYesterdayCount);
             boss.maxHp = nouvellesStats.maxHp;
@@ -186,5 +180,5 @@ function checkBossDeath() {
 }
 
 app.listen(PORT, () => {
-    console.log(`Serveur du Boss dynamique actif sur le port ${PORT}`);
+    console.log(`Serveur du Boss équilibré actif sur le port ${PORT}`);
 });

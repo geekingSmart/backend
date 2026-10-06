@@ -2,64 +2,84 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>DDoS the Boss - Le Jeu</title>
+    <title>DDoS the Boss</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #111; color: #fff; margin-top: 50px; }
-        .hp-bar { width: 50%; height: 30px; background: #333; margin: 20px auto; border-radius: 5px; overflow: hidden; border: 2px solid #555; }
-        .hp-fill { height: 100%; background: #e74c3c; width: 100%; transition: width 0.2s; }
-        button { padding: 15px 25px; font-size: 16px; margin: 10px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; }
-        .btn-1 { background: #3498db; color: white; }
-        .btn-2 { background: #2ecc71; color: white; }
-        .btn-3 { background: #e67e22; color: white; }
-        .btn-4 { background: #9b59b6; color: white; }
+        body { font-family: sans-serif; text-align: center; background: #0f172a; color: #f8fafc; margin-top: 40px; }
+        .hp-bar { width: 60%; height: 35px; background: #334155; margin: 20px auto; border-radius: 8px; overflow: hidden; border: 2px solid #475569; }
+        .hp-fill { height: 100%; background: #ef4444; width: 100%; transition: width 0.2s; }
+        .buttons-grid { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 20px; }
+        button { padding: 14px 24px; font-size: 16px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; color: white; width: 350px; transition: transform 0.1s; }
+        button:active { transform: scale(0.97); }
+        .btn-1 { background: #3b82f6; }
+        .btn-2 { background: #10b981; }
+        .btn-3 { background: #f59e0b; }
+        .btn-4 { background: #8b5cf6; }
+        #log { margin-top: 25px; font-size: 18px; font-weight: bold; color: #38bdf8; min-height: 30px; }
+        #dayTitle { color: #cbd5e1; }
     </style>
 </head>
 <body>
 
-    <h1>💥 LE BOSS DU SERVEUR 💥</h1>
-    <p>Le serveur se régénère de 500 PV/s. Coordonnez-vous pour le faire tomber !</p>
+    <h1 id="dayTitle">💥 LE SERVEUR DU BOSS (Jour 1) 💥</h1>
+    <p>Le serveur encaisse et se régénère de 500 PV/s. Coordonnez-vous pour le faire tomber !</p>
 
     <div class="hp-bar">
         <div id="hpFill" class="hp-fill"></div>
     </div>
     <h2 id="hpText">100000 / 100000 PV</h2>
 
-    <div>
+    <div class="buttons-grid">
         <button class="btn-1" onclick="hit(1)">1. Requête HTTP (1 dégât)</button>
         <button class="btn-2" onclick="hit(2)">2. Bouton Tactique (5 min | x² - x)</button>
-    </div>
-    <div>
         <button class="btn-3" onclick="hit(3)">3. Bouton Chaotique (1 min | x³ - x² - x)</button>
         <button class="btn-4" onclick="hit(4)">4. Bouton Nucléaire (30s | x⁴ - x³ - x² - x)</button>
     </div>
 
-    <p id="log" style="margin-top: 30px; font-style: italic; color: #aaa;"></p>
+    <div id="log"></div>
 
     <script>
         async function fetchBoss() {
-            const res = await fetch('/api/boss');
-            const data = await res.json();
-            updateUI(data);
+            try {
+                const res = await fetch('/api/boss');
+                const data = await res.json();
+                updateUI(data);
+            } catch (e) {
+                console.error("Erreur de connexion au serveur");
+            }
         }
 
         async function hit(buttonId) {
-            const res = await fetch(`/api/hit/${buttonId}`, { method: 'POST' });
-            const data = await res.json();
-            if (data.erreur) {
-                document.getElementById('log').innerText = data.erreur;
-            } else {
-                document.getElementById('log').innerText = `Dernier coup (Bouton ${buttonId}) : ${data.degats > 0 ? '-' + data.degats : '+' + Math.abs(data.degats)} PV !`;
+            try {
+                const res = await fetch(`/api/hit/${buttonId}`, { method: 'POST' });
+                const data = await res.json();
+                
+                const logEl = document.getElementById('log');
+                if (data.erreur) {
+                    logEl.style.color = '#f87171';
+                    logEl.innerText = data.erreur;
+                } else {
+                    logEl.style.color = data.degats > 0 ? '#4ade80' : '#f87171';
+                    const sign = data.degats > 0 ? '-' : '+';
+                    logEl.innerText = `Impact Bouton ${buttonId} : ${sign}${Math.abs(data.degats)} PV !`;
+                }
+                fetchBoss();
+            } catch (e) {
+                console.error("Erreur requête hit");
             }
-            fetchBoss();
         }
 
         function updateUI(boss) {
-            const percent = (boss.hp / boss.maxHp) * 100;
+            const percent = Math.max(0, (boss.hp / boss.maxHp) * 100);
             document.getElementById('hpFill').style.width = percent + '%';
             document.getElementById('hpText').innerText = `${boss.hp} / ${boss.maxHp} PV`;
+            document.getElementById('dayTitle').innerText = `💥 LE SERVEUR DU BOSS (Jour ${boss.dayCount}) 💥`;
+
+            if (!boss.isAlive) {
+                document.getElementById('log').style.color = '#38bdf8';
+                document.getElementById('log').innerText = "🎉 BOSS VAINCU ! Respawn du prochain serveur dans quelques secondes...";
+            }
         }
 
-        // Rafraîchir les PV toutes les secondes
         setInterval(fetchBoss, 1000);
         fetchBoss();
     </script>

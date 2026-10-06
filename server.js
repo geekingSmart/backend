@@ -16,7 +16,7 @@ let boss = {
     killTimeSeconds: null
 };
 
-// Tableaux pour stocker les horodatages des clics des boutons tactiques (pour calculer le x)
+// Tableaux pour stocker les horodatages des clics des boutons tactiques
 let clicksBtn2 = []; // Fenêtre 5 min (300s)
 let clicksBtn3 = []; // Fenêtre 1 min (60s)
 let clicksBtn4 = []; // Fenêtre 30 sec (30s)
@@ -29,7 +29,6 @@ setInterval(() => {
 }, 1000);
 
 // Route pour récupérer l'état du boss
-API : /api/boss
 app.get('/api/boss', (req, res) => {
     res.json(boss);
 });
@@ -49,11 +48,10 @@ app.post('/api/hit/2', (req, res) => {
     
     const now = Date.now();
     clicksBtn2.push(now);
-    // Nettoyer les clics de plus de 5 minutes (300000 ms)
     clicksBtn2 = clicksBtn2.filter(t => now - t <= 300000);
     
     const x = clicksBtn2.length;
-    const degats = (x * x) - x; // Équation x² - x
+    const degats = (x * x) - x;
     
     boss.hp = Math.max(0, boss.hp - degats);
     checkBossDeath();
@@ -66,13 +64,12 @@ app.post('/api/hit/3', (req, res) => {
     
     const now = Date.now();
     clicksBtn3.push(now);
-    // Nettoyer les clics de plus de 1 minute (60000 ms)
     clicksBtn3 = clicksBtn3.filter(t => now - t <= 60000);
     
     const x = clicksBtn3.length;
-    const degats = Math.pow(x, 3) - Math.pow(x, 2) - x; // x^3 - x^2 - x
+    const degats = Math.pow(x, 3) - Math.pow(x, 2) - x;
     
-    boss.hp = Math.max(0, boss.hp - degats); // Si degats < 0, ça soigne le boss !
+    boss.hp = Math.max(0, boss.hp - degats);
     checkBossDeath();
     res.json({ x, degats, hpRestants: boss.hp });
 });
@@ -83,7 +80,6 @@ app.post('/api/hit/4', (req, res) => {
     
     const now = Date.now();
     clicksBtn4.push(now);
-    // Nettoyer les clics de plus de 30 secondes (30000 ms)
     clicksBtn4 = clicksBtn4.filter(t => now - t <= 30000);
     
     const x = clicksBtn4.length;
@@ -98,7 +94,6 @@ function checkBossDeath() {
     if (boss.hp <= 0 && boss.isAlive) {
         boss.isAlive = false;
         boss.hp = 0;
-        // Ici on pourrait enregistrer le temps total
     }
 }
 

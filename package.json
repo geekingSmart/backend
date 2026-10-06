@@ -1,6 +1,7 @@
 {
-  "name": "mon-backend-moula",
+  "name": "boss-server-game",
   "version": "1.0.0",
+  "description": "Un jeu de boss multijoueur minimaliste",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
